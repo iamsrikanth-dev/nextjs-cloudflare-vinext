@@ -1,0 +1,40 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # Build first so `next-env.d.ts` + `.next/types` exist for the typecheck.
+      - run: npm run build
+
+      - run: npm run typecheck
+
+      # Deploy from CI only — local `wrangler deploy` can ship mismatched
+      # bundle hashes and 500 in production. This step pre-renders every route,
+      # uploads the prerender cache to KV, then runs `wrangler deploy`.
+      - name: Deploy to Cloudflare Workers
+        run: npx vinext-cloudflare deploy --skip-build
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
