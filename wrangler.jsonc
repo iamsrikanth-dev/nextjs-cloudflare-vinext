@@ -1,60 +1,69 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "next-cloudflare",
-  "compatibility_date": "2026-08-28",
-  // `nodejs_compat` also populates `process.env` from vars + secrets on
-  // Workers (default for compat dates >= 2025-04-01), which is how
-  // `process.env.REVALIDATE_SECRET` reaches the route handler.
-  "compatibility_flags": ["nodejs_compat"],
-
-  // vinext resolves this to the App Router fetch handler at build time.
-  "main": "vinext/server/fetch-handler",
-
-  // Client bundle + everything in public/. Requests served from here are
-  // free and never invoke the Worker.
-  "assets": {
-    "directory": "dist/client",
-    "not_found_handling": "none",
-    "binding": "ASSETS"
-  },
-
-  // Enables the per-Worker Cloudflare Workers Cache (ctx.cache) that the
-  // cdnAdapter() uses for page-level ISR + tag purging. Available on every
-  // plan; cache HITs are billed at the request rate with zero CPU charge.
-  "cache": { "enabled": true },
-
-  // Origin-side prerender / data cache. Create it once with:
-  //   npx wrangler kv namespace create VINEXT_KV_CACHE
-  // then paste the returned id below.
-  "kv_namespaces": [
-    { "binding": "VINEXT_KV_CACHE", "id": "<your-kv-namespace-id>" }
-  ],
-
-  "observability": { "enabled": true },
-
-  // Non-secret config goes here. Secrets (REVALIDATE_SECRET) are set with
-  //   npx wrangler secret put REVALIDATE_SECRET
-  // and locally in .dev.vars — never commit them.
-  "vars": {
-    "NEXT_PUBLIC_SITE_NAME": "next-cloudflare"
-  },
-
-  "env": {
-    "preview": {
-      "name": "next-cloudflare-preview",
-      "assets": {
-        "directory": "dist/client",
-        "not_found_handling": "none",
-        "binding": "ASSETS"
-      },
-      "cache": { "enabled": true },
-      "kv_namespaces": [
-        { "binding": "VINEXT_KV_CACHE", "id": "<your-preview-kv-namespace-id>" }
-      ],
-      "observability": { "enabled": true },
-      "vars": {
-        "NEXT_PUBLIC_SITE_NAME": "next-cloudflare (preview)"
-      }
-    }
-  }
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "next-cloudflare",
+	"compatibility_date": "2026-08-28",
+	// `nodejs_compat` also populates `process.env` from vars + secrets on
+	// Workers (default for compat dates >= 2025-04-01), which is how
+	// `process.env.REVALIDATE_SECRET` reaches the route handler.
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	// vinext resolves this to the App Router fetch handler at build time.
+	"main": "vinext/server/fetch-handler",
+	// Client bundle + everything in public/. Requests served from here are
+	// free and never invoke the Worker.
+	"assets": {
+		"directory": "dist/client",
+		"not_found_handling": "none",
+		"binding": "ASSETS"
+	},
+	// Enables the per-Worker Cloudflare Workers Cache (ctx.cache) that the
+	// cdnAdapter() uses for page-level ISR + tag purging. Available on every
+	// plan; cache HITs are billed at the request rate with zero CPU charge.
+	"cache": {
+		"enabled": true
+	},
+	// Origin-side prerender / data cache. Create it once with:
+	//   npx wrangler kv namespace create VINEXT_KV_CACHE
+	// then paste the returned id below.
+	"kv_namespaces": [
+		{
+			"binding": "VINEXT_KV_CACHE",
+			"id": "984999ad8ba244b7a6ef576c557b3632"
+		}
+	],
+	"observability": {
+		"enabled": true
+	},
+	// Non-secret config goes here. Secrets (REVALIDATE_SECRET) are set with
+	//   npx wrangler secret put REVALIDATE_SECRET
+	// and locally in .dev.vars — never commit them.
+	"vars": {
+		"NEXT_PUBLIC_SITE_NAME": "next-cloudflare"
+	},
+	"env": {
+		"preview": {
+			"name": "next-cloudflare-preview",
+			"assets": {
+				"directory": "dist/client",
+				"not_found_handling": "none",
+				"binding": "ASSETS"
+			},
+			"cache": {
+				"enabled": true
+			},
+			"kv_namespaces": [
+				{
+					"binding": "VINEXT_KV_CACHE",
+					"id": "<your-preview-kv-namespace-id>"
+				}
+			],
+			"observability": {
+				"enabled": true
+			},
+			"vars": {
+				"NEXT_PUBLIC_SITE_NAME": "next-cloudflare (preview)"
+			}
+		}
+	}
 }
