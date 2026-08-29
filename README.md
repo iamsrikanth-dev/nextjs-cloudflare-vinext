@@ -16,8 +16,10 @@ Objects, or Queues.
 | --- | --- |
 | **vinext** | Runs Next.js on Vite + the Workers runtime. Replaces `next build`. |
 | **`prerender: { routes: "*" }`** | Every route is pre-rendered at deploy time → the site ships as SSG. |
-| **`cdnAdapter()`** | Page-level ISR is delegated to the **Cloudflare Workers Cache**. Each response is tagged with `Cache-Tag`; the edge serves every HIT with no origin hit. `revalidatePath()` / `revalidateTag()` call `ctx.cache.purge({ tags })` → global [Instant Purge](https://developers.cloudflare.com/cache/how-to/purge-cache/) in ~150ms. |
+| **`export const revalidate = 31_536_000`** | One year, **not `false`**. With `false`, vinext serves a prerendered page's RSC / prefetch variant with a raw `s-maxage` and **no `Cache-Tag`**, so `revalidatePath()` can't purge it — soft `<Link>` navigations stay stale while hard reloads look fresh. A positive `revalidate` routes both the HTML and RSC variants through the tag-aware ISR path. |
+| **`cdnAdapter()`** | Page-level ISR is delegated to the **Cloudflare Workers Cache**. Each HTML **and RSC** response is tagged with `Cache-Tag`; the edge serves every HIT with no origin hit. `revalidatePath()` / `revalidateTag()` call `ctx.cache.purge({ tags })` → global [Instant Purge](https://developers.cloudflare.com/cache/how-to/purge-cache/) in ~150ms. |
 | **`kvDataAdapter()`** | Origin-side store (Workers KV). The prerender output is uploaded here on deploy, so a cold PoP or a just-purged page is served from KV instead of a full re-render. Also backs `unstable_cache` / `"use cache"`. |
+| **`experimental.staleTimes: { static: 0, dynamic: 0 }`** | Disables the App Router's in-memory client Router Cache (default 5 min for static). Without it, a soft navigation shows content up to 5 min stale even after the edge was purged. `0` makes every navigation revalidate against the edge — cheap, because the RSC payload is an edge cache HIT. |
 | **`/api/revalidate`** | Secret-protected webhook. Point your CMS "publish" hook at it. |
 
 Request flow:
@@ -29,10 +31,18 @@ page HTML, edge MISS     ->  Worker renders -> KV/edge cache it
 POST /api/revalidate     ->  revalidatePath -> purge edge by tag -> next visitor re-renders
 ```
 
-A prerendered page is sent to the edge with
-`CDN-Cache-Control: public, max-age=31536000, stale-while-revalidate=31536000`
-and a `Cache-Tag` list (e.g. `_N_T_/blog/hello-world`). It never expires on its
-own — only an on-demand purge changes it.
+A prerendered page (both its HTML and its RSC variant) is sent to the edge with
+`CDN-Cache-Control: public, max-age=31536000` and a `Cache-Tag` list (e.g.
+`_N_T_/blog/hello-world`). It effectively never expires on its own — only an
+on-demand purge changes it.
+
+### Freshness after a revalidate
+
+| Access | When it goes fresh |
+| --- | --- |
+| New visitor / hard reload | Immediately after the purge propagates (~150 ms) |
+| Soft `<Link>` navigation | Same — because `staleTimes` is `0`, the client refetches the (now purged) RSC from the edge |
+| A tab already showing the page | Not until the user navigates or reloads — nothing live-updates a static page in place |
 
 ---
 

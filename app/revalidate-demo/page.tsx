@@ -2,8 +2,7 @@ import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import { getAllPosts } from "@/lib/posts";
 
-export const dynamic = "force-static";
-export const revalidate = false;
+export const revalidate = 31_536_000;
 
 // Server Action — runs on the Worker, no client-side secret needed.
 async function revalidateEverything(): Promise<void> {

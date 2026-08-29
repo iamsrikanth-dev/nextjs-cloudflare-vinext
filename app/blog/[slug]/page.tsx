@@ -3,11 +3,17 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getAllPosts, getPost } from "@/lib/posts";
 
-// Pure SSG. `generateStaticParams` prerenders every post at deploy time;
-// `revalidate = false` means the edge copy never expires on its own — the
-// only way it changes is an on-demand `revalidatePath('/blog/<slug>')`.
-export const dynamic = "force-static";
-export const revalidate = false;
+// SSG: `generateStaticParams` prerenders every post at deploy time.
+//
+// `revalidate` is set to one year rather than `false`. With `false`, vinext
+// serves the RSC/prefetch variant of a prerendered page with a raw
+// `s-maxage=31536000` and NO `Cache-Tag`, so `revalidatePath()` cannot purge
+// it from the edge — soft (<Link>) navigations then show stale content while a
+// hard reload shows fresh. A positive `revalidate` routes the page through the
+// tag-aware ISR path so BOTH the HTML and RSC variants are edge-cached *with*
+// the path tag and get purged together. One year ≈ "on-demand only" in
+// practice; the webhook is what actually refreshes content.
+export const revalidate = 31_536_000;
 export const dynamicParams = true; // new slugs render on first request, then cache
 
 export async function generateStaticParams() {

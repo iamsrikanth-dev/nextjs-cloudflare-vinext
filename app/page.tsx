@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { getAllPosts } from "@/lib/posts";
 
-// Pure SSG: rendered once, cached at the edge until `revalidatePath('/')`.
-export const dynamic = "force-static";
-export const revalidate = false;
+// SSG: rendered at build, cached at the edge until `revalidatePath('/')`.
+// One year rather than `false` so the RSC/prefetch variant is edge-cached
+// *with* the path tag and stays purgeable — see app/blog/[slug]/page.tsx.
+export const revalidate = 31_536_000;
 
 export default async function HomePage() {
   const posts = await getAllPosts();

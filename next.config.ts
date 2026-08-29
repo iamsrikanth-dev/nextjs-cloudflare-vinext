@@ -15,6 +15,20 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
+
+  experimental: {
+    // The App Router keeps prefetched RSC payloads in an in-memory client
+    // cache. The default (`static: 300`) means a soft <Link> navigation shows
+    // content up to 5 minutes stale even after `revalidatePath()` purged the
+    // edge — only a hard reload looks fresh. `0` makes every navigation
+    // revalidate against the edge (which is cheap: the RSC payload is an edge
+    // cache HIT, ~0 CPU). Raise this if you want the snappier cached-nav feel
+    // and can tolerate a staleness window.
+    staleTimes: {
+      dynamic: 0,
+      static: 0,
+    },
+  },
 };
 
 export default nextConfig;
